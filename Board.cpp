@@ -3,6 +3,8 @@
 Board::Board() {
 	createPieces(PieceColor::BLACK);
 	createPieces(PieceColor::WHITE);
+
+	this->selectedPiecePos = sf::Vector2i(-1, -1);
 }
 
 void Board::renderPieces(sf::RenderWindow& window) const {
@@ -20,14 +22,24 @@ void Board::createPieces(PieceColor color) {
 		this->piecesInGame.push_back(ChessPiece(color, PieceType::PAWN, sf::Vector2i(i, (color == PieceColor::BLACK ? 1 : 6))));
 	}
 }
-ChessPiece Board::clicked(sf::Vector2i pos) const {
+
+ChessPiece* Board::clicked(sf::Vector2i pos) {
 	for (ChessPiece piece : this->piecesInGame) {
 		if (piece.getPosition() == pos)
-			return piece;
+			return &piece;
 	}
-	return ChessPiece();
+	this->deselectPieces();
+	return nullptr;
 }
 
-void select(ChessPiece piece) {
+void Board::deselectPieces() {
+	this->selectedPiecePos = sf::Vector2i(-1, -1);
+}
 
+void Board::select(ChessPiece& piece) {
+	this->selectedPiecePos = piece.getPosition();
+}
+
+sf::Vector2i Board::getSelectedPiecePos() const {
+	return this->selectedPiecePos;
 }
