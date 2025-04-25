@@ -17,6 +17,8 @@ public:
 
 	Setup();
 	void windowLoop();
+	void drawBoard(Board& board);
+	void eventLoop(Board& board);
 };
 
 #endif

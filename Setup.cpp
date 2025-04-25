@@ -17,38 +17,45 @@ void Setup::windowLoop() {
     Board board;
 
     while (window.isOpen()) {
-        sf::Vector2i mousePos = sf::Mouse::getPosition(window) / 100;
-
-        while (const std::optional event = window.pollEvent()) {
-            if (event->is<sf::Event::Closed>())
-                window.close();
-            else if (event->is<sf::Event::MouseButtonPressed>()) {
-                ChessPiece* selectedPiece = board.clicked(mousePos);
-                if (selectedPiece != nullptr)
-                    board.select(*selectedPiece);
-            }
-
-        }
+        eventLoop(board);
+        
         window.clear();
+        drawBoard(board);
+    }
+}
 
-        // draw the board
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                square.setPosition(sf::Vector2f(i * 100.f, j * 100.f));
+void Setup::eventLoop(Board& board) {
+    sf::Vector2i mousePos = sf::Mouse::getPosition(window) / 100;
 
-                if (sf::Vector2i(i, j) == board.getSelectedPiecePos())
-                    square.setFillColor(selectedSquare);
-                else if ((i % 2 == 0) ^ (j % 2 == 0))
-                    square.setFillColor(lightSquare);
-                else
-                    square.setFillColor(darkSquare);
-
-                window.draw(square);
-            }
+    while (const std::optional event = window.pollEvent()) {
+        if (event->is<sf::Event::Closed>())
+            window.close();
+        else if (event->is<sf::Event::MouseButtonPressed>()) {
+            ChessPiece* selectedPiece = board.clicked(mousePos);
+            if (selectedPiece)
+                board.select(*selectedPiece);
         }
 
-        board.renderPieces(window);
-
-        window.display();
     }
+}
+
+void Setup::drawBoard(Board& board) {
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            square.setPosition(sf::Vector2f(i * 100.f, j * 100.f));
+
+            if (sf::Vector2i(i, j) == board.getSelectedPiecePos())
+                square.setFillColor(selectedSquare);
+            else if ((i % 2 == 0) ^ (j % 2 == 0))
+                square.setFillColor(lightSquare);
+            else
+                square.setFillColor(darkSquare);
+
+            window.draw(square);
+        }
+    }
+
+    board.renderPieces(window);
+
+    window.display();
 }
