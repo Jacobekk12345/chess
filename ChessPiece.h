@@ -21,12 +21,9 @@ private:
 	std::vector<sf::Vector2i> possibleMoves;
 
 	void loadTexture(std::string imagePath);
-	bool blank = false;
 public:
-	bool isSelected = false;
 
 	ChessPiece(PieceColor color, PieceType type, sf::Vector2i position);
-	ChessPiece();
 
 	void place(sf::RenderWindow& window);
 
@@ -34,9 +31,8 @@ public:
 	void setPosition(sf::Vector2i newPos);
 	PieceType getType() const;
 	PieceColor getColor() const;
-	bool isBlank() const;
 };
 
 std::string makeFilePath(PieceColor color, PieceType type);
 
-#endif PIECE_H
+#endif

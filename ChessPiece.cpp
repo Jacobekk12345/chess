@@ -4,12 +4,7 @@ ChessPiece::ChessPiece(PieceColor color, PieceType type, sf::Vector2i position) 
     // Create the texture as a member variable
     loadTexture(makeFilePath(this->color, this->type));
 }
-ChessPiece::ChessPiece() {
-    this->blank = true;
-}
-bool ChessPiece::isBlank() const {
-    return this->blank;
-}
+
 void ChessPiece::loadTexture(std::string imagePath) {
     // Load directly into the member texture
     this->texture.loadFromFile(imagePath);
