@@ -10,15 +10,22 @@ class Board {
 private:
 	std::vector<ChessPiece> piecesInGame;
 	void createPieces(PieceColor color);
-	bool move = true; // white = true, black = false
+	PieceColor move = PieceColor::WHITE;
 	sf::Vector2i selectedPiecePos;
 public:
 	Board();
-	void renderPieces(sf::RenderWindow& window) const;
-	ChessPiece* clicked(sf::Vector2i pos);
+	void renderPieces(sf::RenderWindow& window);
+	ChessPiece* getPiece(sf::Vector2i pos) const;
 	void select(ChessPiece& piece);
 	void deselectPieces();
 	sf::Vector2i getSelectedPiecePos() const;
+	ChessPiece* getSelectedPiece() const;
+	PieceColor getMove() const;
+	void movePiece(ChessPiece* piece, sf::Vector2i moveTo);
+	void calculateMoves(PieceColor move);
+	bool checkForCheckmate(PieceColor move) const;
+	void endGame();
+	void capture(ChessPiece piece);
 };
 
 #endif
