@@ -6,7 +6,7 @@
 class Board;
 
 enum class PieceColor {
-	WHITE = 0, BLACK
+	WHITE = 0, BLACK = 1
 };
 
 enum class PieceType {
@@ -39,6 +39,8 @@ public:
 	PieceColor getColor() const;
 	void promote();
 	std::vector<sf::Vector2i> getPossibleMoves() const;
+	void validateMoves();
+	void clearPossibleMoves();
 	void calculatePossibleMoves();
 	void defaultMovesPawn();
 	void defaultMovesKnight();

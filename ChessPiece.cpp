@@ -28,9 +28,10 @@ std::string makeFilePath(PieceColor color, PieceType type) {
     return path;
 }
 
+// draws the piece on the board in its position
 void ChessPiece::place(sf::RenderWindow& window) {
     sf::Sprite sprite(texture);
-    sprite.setPosition(sf::Vector2f(boardPosition.x * 100, boardPosition.y * 100));
+    sprite.setPosition(sf::Vector2f(this->boardPosition.x * 100, this->boardPosition.y * 100));
     window.draw(sprite);
 }
 
@@ -57,6 +58,10 @@ void ChessPiece::promote() {
 
 std::vector<sf::Vector2i> ChessPiece::getPossibleMoves() const {
     return this->possibleMoves;
+}
+
+void ChessPiece::clearPossibleMoves() {
+    this->possibleMoves.clear();
 }
 
 void ChessPiece::calculatePossibleMoves() {
@@ -90,6 +95,12 @@ void ChessPiece::calculatePossibleMoves() {
     }
     }
 
+    this->validateMoves();
+
+}
+
+void ChessPiece::validateMoves() { // TODO: checks whether every possible move is legal
+    return;
 }
 
 void ChessPiece::defaultMovesPawn() {
@@ -104,11 +115,13 @@ void ChessPiece::defaultMovesPawn() {
         if (board->getPiece(sf::Vector2i(this->boardPosition.x, this->boardPosition.y - 1)) == nullptr)
             this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x, this->boardPosition.y - 1));
         // capturing left
-        if (board->getPiece(sf::Vector2i(this->boardPosition.x - 1, this->boardPosition.y - 1)) != nullptr && this->boardPosition.x > 1)
+        if (board->getPiece(sf::Vector2i(this->boardPosition.x - 1, this->boardPosition.y - 1)) != nullptr && this->boardPosition.x > 0)
             this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x - 1, this->boardPosition.y - 1));
         // capturing right
         if (board->getPiece(sf::Vector2i(this->boardPosition.x + 1, this->boardPosition.y - 1)) != nullptr && this->boardPosition.x < 7)
             this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x + 1, this->boardPosition.y - 1));
+        // TODO: en passant logic
+    
     }
     else {
         if (this->boardPosition.y == 1)
@@ -117,9 +130,9 @@ void ChessPiece::defaultMovesPawn() {
                 this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x, 3));
 
         if (board->getPiece(sf::Vector2i(this->boardPosition.x, this->boardPosition.y + 1)) == nullptr)
-            this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x, this->boardPosition.y - 1));
+            this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x, this->boardPosition.y + 1));
         
-        if (board->getPiece(sf::Vector2i(this->boardPosition.x - 1, this->boardPosition.y + 1)) != nullptr && this->boardPosition.x > 1)
+        if (board->getPiece(sf::Vector2i(this->boardPosition.x - 1, this->boardPosition.y + 1)) != nullptr && this->boardPosition.x > 0)
             this->possibleMoves.push_back(sf::Vector2i(this->boardPosition.x - 1, this->boardPosition.y + 1));
         
         if (board->getPiece(sf::Vector2i(this->boardPosition.x + 1, this->boardPosition.y + 1)) != nullptr && this->boardPosition.x < 7)
@@ -130,21 +143,106 @@ void ChessPiece::defaultMovesPawn() {
 }
 
 void ChessPiece::defaultMovesKnight() {
+    std::vector<sf::Vector2i> directions = {
+        sf::Vector2i(2, 1),
+        sf::Vector2i(2, -1),
+        sf::Vector2i(-2, -1),
+        sf::Vector2i(-2, 1),
+        sf::Vector2i(1, 2),
+        sf::Vector2i(1, -2),
+        sf::Vector2i(-1, -2),
+        sf::Vector2i(-1, 2)
+    };
+
+    for (sf::Vector2i point : directions) {
+
+        if ((this->boardPosition + point).x >= 0 && (this->boardPosition + point).x <= 7 &&
+            (this->boardPosition + point).y >= 0 && (this->boardPosition + point).y <= 7)
+            if (board->getPiece(boardPosition + point) == nullptr)
+                this->possibleMoves.push_back(this->boardPosition + point);
+            else
+                if (board->getPiece(boardPosition + point)->getColor() != this->getColor())
+                    this->possibleMoves.push_back(this->boardPosition + point);
+    }
 
 }
 
 void ChessPiece::defaultMovesBishop() {
+    std::vector<sf::Vector2i> directions = {
+        sf::Vector2i(1, 1),
+        sf::Vector2i(1, -1),
+        sf::Vector2i(-1, 1),
+        sf::Vector2i(-1, -1)
+    };
+
+    for (sf::Vector2i direction : directions) {
+        int i = 1;
+        while (true) {
+            sf::Vector2i pos = this->boardPosition + direction * i;
+            i++;
+            if (!(pos.x >= 0 && pos.x <= 7 && pos.y >= 0 && pos.y <= 7))
+                break;
+            if (board->getPiece(pos) != nullptr) {
+                if (board->getPiece(pos)->getColor() != this->getColor())
+                    this->possibleMoves.push_back(pos);
+                break;
+            }
+            this->possibleMoves.push_back(pos);
+        }
+    }
 
 }
 
 void ChessPiece::defaultMovesRook() {
+    std::vector<sf::Vector2i> directions = {
+        sf::Vector2i(0, 1),
+        sf::Vector2i(0, -1),
+        sf::Vector2i(-1, 0),
+        sf::Vector2i(1, 0)
+    };
 
+    for (sf::Vector2i direction : directions) {
+        int i = 1;
+        while (true) {
+            sf::Vector2i pos = this->boardPosition + direction * i;
+            i++;
+            if (!(pos.x >= 0 && pos.x <= 7 && pos.y >= 0 && pos.y <= 7))
+                break;
+            if (board->getPiece(pos) != nullptr) {
+                if (board->getPiece(pos)->getColor() != this->getColor())
+                    this->possibleMoves.push_back(pos);
+                break;
+            }
+            this->possibleMoves.push_back(pos);
+        }
+    }
 }
 
 void ChessPiece::defaultMovesQueen() {
-
+    this->defaultMovesBishop();
+    this->defaultMovesRook();
 }
 
 void ChessPiece::defaultMovesKing() {
+    std::vector<sf::Vector2i> directions = {
+        sf::Vector2i(0, 1),
+        sf::Vector2i(0, -1),
+        sf::Vector2i(-1, 0),
+        sf::Vector2i(1, 0),
+        sf::Vector2i(1, 1),
+        sf::Vector2i(1, -1),
+        sf::Vector2i(-1, 1),
+        sf::Vector2i(-1, -1)
+    };
+
+    for (sf::Vector2i point : directions) {
+        if ((this->boardPosition + point).x >= 0 && (this->boardPosition + point).x <= 7 &&
+            (this->boardPosition + point).y >= 0 && (this->boardPosition + point).y <= 7)
+            if (board->getPiece(boardPosition + point) == nullptr)
+                this->possibleMoves.push_back(this->boardPosition + point);
+            else
+                if (board->getPiece(boardPosition + point)->getColor() != this->getColor())
+                    this->possibleMoves.push_back(this->boardPosition + point);
+    }
 
 }
