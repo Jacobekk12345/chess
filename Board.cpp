@@ -87,6 +87,7 @@ ChessPiece* Board::getSelectedPiece() const {
 void Board::calculateMoves(PieceColor move) {
 	for (auto& piece : this->piecesInGame) {
 		if (piece.getColor() == move)
+			piece.clearPossibleMoves();
 			piece.calculatePossibleMoves();
 	}
 }
@@ -100,6 +101,6 @@ bool Board::checkForCheckmate(PieceColor move) const {
 	return true;
 }
 
-void Board::endGame() {
+void Board::endGame() { // TODO
 	return;
 }
