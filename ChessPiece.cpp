@@ -57,6 +57,8 @@ void ChessPiece::promote() {
 }
 
 std::vector<sf::Vector2i> ChessPiece::getPossibleMoves() const {
+    if (this == nullptr)
+        return {};
     return this->possibleMoves;
 }
 
@@ -99,7 +101,7 @@ void ChessPiece::calculatePossibleMoves() {
 
 }
 
-void ChessPiece::validateMoves() { // TODO: checks whether every possible move is legal
+void ChessPiece::validateMoves() { // TODO: checks whether every possible move is legal, eg. due to checks
     return;
 }
 
