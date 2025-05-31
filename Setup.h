@@ -11,6 +11,8 @@ private:
 	sf::Color lightSquare;
 	sf::Color selectedSquare;
 	sf::RectangleShape square;
+	sf::Color movesIndicatorCircleColor;
+	sf::CircleShape availableMovesIndicator;
 
 public:
 	sf::RenderWindow window;
@@ -19,6 +21,7 @@ public:
 	void windowLoop();
 	void drawBoard(Board& board);
 	void eventLoop(Board& board);
+	void drawAvailableMovesIndicators(Board& board);
 };
 
 #endif
