@@ -22,6 +22,9 @@ private:
 	PieceType type;
 	std::vector<sf::Vector2i> possibleMoves;
 
+	std::vector<sf::Vector2i> pinDirections;
+	std::vector<sf::Vector2i> pinningPiecesPositions;
+
 	Board* board;
 
 	void loadTexture(std::string imagePath);
@@ -39,15 +42,15 @@ public:
 	PieceColor getColor() const;
 	void promote();
 	std::vector<sf::Vector2i> getPossibleMoves() const;
-	void validateMoves();
 	void clearPossibleMoves();
+	void clearPins();
 	void calculatePossibleMoves();
-	void defaultMovesPawn();
-	void defaultMovesKnight();
-	void defaultMovesBishop();
-	void defaultMovesRook();
-	void defaultMovesQueen();
-	void defaultMovesKing();
+	void calculateMovesPawn();
+	void calculateMovesKnight();
+	void calculateMovesBishop();
+	void calculateMovesRook();
+	void calculateMovesQueen();
+	void calculateMovesKing();
 };
 
 std::string makeFilePath(PieceColor color, PieceType type);

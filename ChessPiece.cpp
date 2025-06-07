@@ -62,6 +62,10 @@ std::vector<sf::Vector2i> ChessPiece::getPossibleMoves() const {
     return this->possibleMoves;
 }
 
+void ChessPiece::clearPins() {
+    this->pinDirections.clear();
+}
+
 void ChessPiece::clearPossibleMoves() {
     this->possibleMoves.clear();
 }
@@ -69,27 +73,27 @@ void ChessPiece::clearPossibleMoves() {
 void ChessPiece::calculatePossibleMoves() {
     switch (this->getType()) {
     case PieceType::PAWN: {
-        this->defaultMovesPawn();
+        this->calculateMovesPawn();
         break;
     }
     case PieceType::KNIGHT: {
-        this->defaultMovesKnight();
+        this->calculateMovesKnight();
         break;
     }
     case PieceType::BISHOP: {
-        this->defaultMovesBishop();
+        this->calculateMovesBishop();
         break;
     }
     case PieceType::ROOK: {
-        this->defaultMovesRook();
+        this->calculateMovesRook();
         break;
     }
     case PieceType::QUEEN: {
-        this->defaultMovesQueen();
+        this->calculateMovesQueen();
         break;
     }
     case PieceType::KING: {
-        this->defaultMovesKing();
+        this->calculateMovesKing();
         break;
     }
     default: {
@@ -97,15 +101,13 @@ void ChessPiece::calculatePossibleMoves() {
     }
     }
 
-    this->validateMoves();
-
 }
 
-void ChessPiece::validateMoves() { // TODO: checks whether every possible move is legal, eg. due to checks
-    return;
-}
+void ChessPiece::calculateMovesPawn() {
 
-void ChessPiece::defaultMovesPawn() {
+    //TODO: if the pinning piece can be taken by the pawn, the pawn can take it, for now it just cant move
+    if (!this->pinDirections.empty())
+        return;
 
     if (this->color == PieceColor::WHITE) {
         // can move 2 squares forward
@@ -144,7 +146,11 @@ void ChessPiece::defaultMovesPawn() {
 
 }
 
-void ChessPiece::defaultMovesKnight() {
+void ChessPiece::calculateMovesKnight() {
+
+    if (!this->pinDirections.empty())
+        return;
+
     std::vector<sf::Vector2i> directions = {
         sf::Vector2i(2, 1),
         sf::Vector2i(2, -1),
@@ -169,7 +175,7 @@ void ChessPiece::defaultMovesKnight() {
 
 }
 
-void ChessPiece::defaultMovesBishop() {
+void ChessPiece::calculateMovesBishop() {
     std::vector<sf::Vector2i> directions = {
         sf::Vector2i(1, 1),
         sf::Vector2i(1, -1),
@@ -177,25 +183,52 @@ void ChessPiece::defaultMovesBishop() {
         sf::Vector2i(-1, -1)
     };
 
+
     for (sf::Vector2i direction : directions) {
+
+        if (!(std::find(this->pinDirections.begin(), this->pinDirections.end(), direction) != this->pinDirections.end() ||
+            std::find(this->pinDirections.begin(), this->pinDirections.end(), direction * -1) != this->pinDirections.end()) && !this->pinDirections.empty())
+            continue;
+
         int i = 1;
+        bool stopPushingMoves = false;
+        sf::Vector2i lastEnemyPiecePos;
+
         while (true) {
             sf::Vector2i pos = this->boardPosition + direction * i;
             i++;
+
             if (!(pos.x >= 0 && pos.x <= 7 && pos.y >= 0 && pos.y <= 7))
                 break;
             if (board->getPiece(pos) != nullptr) {
-                if (board->getPiece(pos)->getColor() != this->getColor())
+
+                if (stopPushingMoves) {
+
+                    if (board->getPiece(pos) != nullptr)
+                        if (board->getPiece(pos)->getType() == PieceType::KING && board->getPiece(pos)->getColor() != this->getColor()) {
+                            board->getPiece(lastEnemyPiecePos)->pinDirections.push_back(direction);
+                            board->getPiece(lastEnemyPiecePos)->pinningPiecesPositions.push_back(this->getPosition());
+                        }
+
+                    break;
+                }
+
+                if (board->getPiece(pos)->getColor() != this->getColor()) {
                     this->possibleMoves.push_back(pos);
-                break;
+                    stopPushingMoves = true;
+                    lastEnemyPiecePos = pos;
+                }
+                else
+                    break;
             }
-            this->possibleMoves.push_back(pos);
+            if (!stopPushingMoves)
+                this->possibleMoves.push_back(pos);
         }
     }
 
 }
 
-void ChessPiece::defaultMovesRook() {
+void ChessPiece::calculateMovesRook() {
     std::vector<sf::Vector2i> directions = {
         sf::Vector2i(0, 1),
         sf::Vector2i(0, -1),
@@ -204,28 +237,54 @@ void ChessPiece::defaultMovesRook() {
     };
 
     for (sf::Vector2i direction : directions) {
+
+        if (!(std::find(this->pinDirections.begin(), this->pinDirections.end(), direction) != this->pinDirections.end() ||
+            std::find(this->pinDirections.begin(), this->pinDirections.end(), direction * -1) != this->pinDirections.end()) && !this->pinDirections.empty())
+            continue;
+
         int i = 1;
+        bool stopPushingMoves = false;
+        sf::Vector2i lastEnemyPiecePos;
+
         while (true) {
             sf::Vector2i pos = this->boardPosition + direction * i;
             i++;
+
             if (!(pos.x >= 0 && pos.x <= 7 && pos.y >= 0 && pos.y <= 7))
                 break;
             if (board->getPiece(pos) != nullptr) {
-                if (board->getPiece(pos)->getColor() != this->getColor())
+
+                if (stopPushingMoves) {
+
+                    if (board->getPiece(pos) != nullptr)
+                        if (board->getPiece(pos)->getType() == PieceType::KING && board->getPiece(pos)->getColor() != this->getColor()) {
+                            board->getPiece(lastEnemyPiecePos)->pinDirections.push_back(direction);
+                            board->getPiece(lastEnemyPiecePos)->pinningPiecesPositions.push_back(this->getPosition());
+                        }
+
+                    break;
+                }
+
+                if (board->getPiece(pos)->getColor() != this->getColor()) {
                     this->possibleMoves.push_back(pos);
-                break;
+                    stopPushingMoves = true;
+                    lastEnemyPiecePos = pos;
+                }
+                else
+                    break;
             }
-            this->possibleMoves.push_back(pos);
+            if (!stopPushingMoves)
+                this->possibleMoves.push_back(pos);
         }
     }
 }
 
-void ChessPiece::defaultMovesQueen() {
-    this->defaultMovesBishop();
-    this->defaultMovesRook();
+void ChessPiece::calculateMovesQueen() {
+    this->calculateMovesBishop();
+    this->calculateMovesRook();
 }
 
-void ChessPiece::defaultMovesKing() {
+void ChessPiece::calculateMovesKing() {
     std::vector<sf::Vector2i> directions = {
         sf::Vector2i(0, 1),
         sf::Vector2i(0, -1),
