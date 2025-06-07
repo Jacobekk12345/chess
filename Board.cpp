@@ -85,6 +85,17 @@ ChessPiece* Board::getSelectedPiece() const {
 }
 
 void Board::calculateMoves(PieceColor move) {
+
+	std::cout << "Clearing pins for " << (move == PieceColor::WHITE ? "black" : "white") << '\n';
+	for (auto& piece : this->piecesInGame) {
+		if (piece.getColor() != move) {
+			if (!piece.pinDirections.empty()) {
+				std::cout << "detected a pin for a piece at (" << piece.getPosition().x << ", " << piece.getPosition().y << ")\n";
+			}
+			piece.clearPins();
+		}
+	}
+
 	for (auto& piece : this->piecesInGame) {
 		if (piece.getColor() == move)
 			piece.clearPossibleMoves();
