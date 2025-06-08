@@ -14,6 +14,11 @@ private:
 	sf::Color movesIndicatorCircleColor;
 	sf::CircleShape availableMovesIndicator;
 
+	int windowWidth;
+	int windowHeight;
+
+	bool isResizing;
+
 public:
 	sf::RenderWindow window;
 
