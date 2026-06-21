@@ -10,6 +10,15 @@ GameLoop::GameLoop() : darkSquareColor(sf::Color(118, 150, 86)),
 	window = sf::RenderWindow(sf::VideoMode({800, 800}), "Chess", sf::Style::Close);
 
     board = new Board();
+
+    float promotionWidth = availablePromotions.size() * promotionSelectorsScale * 100;
+    for (int i = 0; i < promotionsPositions.size(); i++) {
+        promotionsPositions[i] = { 
+            ((800.f - promotionWidth) / 2.f) + i * (100.f * promotionSelectorsScale),
+            400.f - ((promotionSelectorsScale * 100.f) / 2)
+        };
+    }
+
 }
 
 void GameLoop::start() {
@@ -18,6 +27,10 @@ void GameLoop::start() {
 
         window.clear();
         drawBoard();
+
+        if (promoting)
+            drawPromotionView();
+
         window.display();
     }
 }
@@ -90,9 +103,54 @@ void GameLoop::eventLoop() {
     }
 }
 
+Piece* GameLoop::pawnAtBackrank() {
+    for (auto pawn : board->getPieces(PieceType::PAWN)) {
+        int y = pawn->getPos().y;
+        if (y == 0 || y == 7) {
+            return pawn;
+        }
+    }
+    return nullptr;
+}
+
+void GameLoop::drawPromotionView() {
+    sf::RectangleShape bg = sf::RectangleShape({ 800, 800 });
+    bg.setFillColor(sf::Color(0, 0, 0, 150));
+
+    sf::Texture texture;
+    texture.setSmooth(true);
+
+    window.draw(bg);
+
+    for (int i = 0; i < availablePromotions.size(); i++) {
+        texture.loadFromFile(makeFilePath(turn, availablePromotions[i]));
+        sf::Sprite sprite(texture);
+        sprite.setScale({promotionSelectorsScale, promotionSelectorsScale });
+        sprite.setPosition(promotionsPositions[i]);
+        window.draw(sprite);
+    }
+}
+
 void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
     if (mouse->button == sf::Mouse::Button::Left) {
         sf::Vector2f mouseWorldPos = sf::Vector2f(mouse->position / 100);
+
+        if (promoting) {
+            for (int i = 0; i < promotionsPositions.size(); i++) {
+                float mX = mouse->position.x,
+                      mY = mouse->position.y,
+                      pX = promotionsPositions[i].x,
+                      pY = promotionsPositions[i].y;
+
+                if ((mX > pX && mX < (pX + promotionSelectorsScale * 100)) && (mY > pY && mY < (pY + promotionSelectorsScale * 100))) {
+                    promoting = false;
+                    pawnAtBackrank()->promote(availablePromotions[i]);
+                    turn = (turn == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+                    board->calculateLegalMoves();
+                }
+            }
+            return;
+        }
 
         Piece* clickedOnSquare = board->getPiece(mouseWorldPos);
 
@@ -105,7 +163,13 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
             if (selectedPiece->canMoveTo(mouseWorldPos)) {
                 board->movePiece(*selectedPiece, mouseWorldPos);
                 deselectPieces();
+
+                if (pawnAtBackrank()) {
+                    promoting = true;
+                    return;
+                }
                 turn = (turn == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+
                 board->calculateLegalMoves();
             }
         }

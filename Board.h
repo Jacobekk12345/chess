@@ -26,7 +26,7 @@ public:
 	void createStartingPos();
 	Piece* getPiece(sf::Vector2f position) const;
 
-	void movePiece(Piece& piece, sf::Vector2f moveTo);
+	void movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType = PieceType::QUEEN);
 
 	std::optional<Move> getLastMove() const;
 

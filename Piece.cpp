@@ -1,7 +1,7 @@
 #include "Piece.h"
 
 Piece::Piece(PieceColor color, PieceType type, sf::Vector2f position) : color(color), type(type), position(position){
-    texture.loadFromFile(makeFilePath());
+    texture.loadFromFile(makeFilePath(color, type));
     texture.setSmooth(true);
 }
 
@@ -15,7 +15,7 @@ bool Piece::operator!=(const Piece& other) const {
     return !(*this == other);
 }
 
-std::string Piece::makeFilePath() {
+std::string makeFilePath(PieceColor color, PieceType type) {
     std::string path;
     path += "assets/pieces/";
     path += std::to_string(static_cast<int>(color));
@@ -42,7 +42,6 @@ PieceType Piece::getType() const {
 
 void Piece::draw(sf::RenderWindow& window) const {
     sf::Sprite sprite(texture);
-    sprite.setTexture(texture);
     sprite.setPosition(position * 100.f);
 
     window.draw(sprite);
@@ -68,4 +67,6 @@ void Piece::markAsMoved() {
 
 void Piece::promote(const PieceType& type) {
     this->type = type;
+    texture.loadFromFile(makeFilePath(color, type));
+
 }

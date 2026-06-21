@@ -25,7 +25,7 @@ void Board::createStartingPos() {
 	}
 }
 
-void Board::movePiece(Piece& piece, sf::Vector2f moveTo) {
+void Board::movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType) {
 	auto it = std::find_if(pieces.begin(), pieces.end(), [&](const Piece& p) { return p.getPos() == moveTo && p != piece; });
 	MoveType type = MoveType::Normal;
 
@@ -52,7 +52,7 @@ void Board::movePiece(Piece& piece, sf::Vector2f moveTo) {
 		break;
 	}
 	case MoveType::PawnPromotion: {
-		std::cout << "promotion\n";
+		
 
 		break;
 	}
@@ -142,12 +142,19 @@ void Board::calculateLegalMoves(bool checkLegality) {
 					return wouldBeInCheck(*piece, move.to);
 					}), moves.end());
 			}
-			else if (pinnedPieces.count(piece)) {
-				sf::Vector2f pinRay = pinnedPieces[piece];
-				moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
-					sf::Vector2f dir = move.to - move.from;
-					return !(dir.x * pinRay.y == dir.y * pinRay.x);
-					}), moves.end());
+			else {
+				if (isInCheck(piece->getColor())) {
+					moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
+						return wouldBeInCheck(*piece, move.to);
+						}), moves.end());
+				}
+				if (pinnedPieces.count(piece)) {
+					sf::Vector2f pinRay = pinnedPieces[piece];
+					moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
+						sf::Vector2f dir = move.to - move.from;
+						return !(dir.x * pinRay.y == dir.y * pinRay.x);
+						}), moves.end());
+				}
 			}
 		}
 
@@ -284,14 +291,24 @@ std::vector<Move> Board::getKingMoves(Piece& king) {
 }
 
 bool Board::isInCheck(PieceColor color) {
-	Piece* king = this->getPieces(color, PieceType::KING).at(0);
+    Piece* king = this->getPieces(color, PieceType::KING).at(0);
+    PieceColor opponent = (color == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
 
-	for (auto piece : this->getPieces(color == PieceColor::WHITE ? PieceColor::BLACK : PieceColor::WHITE)) {
-		auto legalMoves = piece->getLegalMoves();
-		if (std::find(legalMoves.begin(), legalMoves.end(), king->getPos()) != legalMoves.end())
-			return true;
-	}
-	return false;
+    for (auto piece : this->getPieces(opponent)) {
+        std::vector<Move> moves;
+        switch (piece->getType()) {
+        case PieceType::PAWN:   moves = getPawnMoves(*piece);   break;
+        case PieceType::KNIGHT: moves = getKnightMoves(*piece); break;
+        case PieceType::BISHOP: moves = getBishopMoves(*piece); break;
+        case PieceType::ROOK:   moves = getRookMoves(*piece);   break;
+        case PieceType::QUEEN:  moves = getQueenMoves(*piece);  break;
+        case PieceType::KING:   moves = getKingMoves(*piece);   break;
+        }
+
+        for (auto& move : moves)
+            if (move.to == king->getPos()) return true;
+    }
+    return false;
 }
 
 std::map<Piece*, sf::Vector2f> Board::getPinnedPieces() {
@@ -336,7 +353,7 @@ std::map<Piece*, sf::Vector2f> Board::getPinnedPieces() {
 	return pinnedPieces;
 }
 
-bool Board::wouldBeInCheck(Piece piece, sf::Vector2f moveTo) { // REWORK: check if a piece is on a straight / diagonal line with a king, if so check if any enemy piece is on the same line
+bool Board::wouldBeInCheck(Piece piece, sf::Vector2f moveTo) {
 	Board boardCopy = *this;
 	Piece* pieceInCopy = boardCopy.getPiece(piece.getPos());
 

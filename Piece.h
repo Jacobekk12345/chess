@@ -30,6 +30,8 @@ enum class PieceType {
 	KING
 };
 
+std::string makeFilePath(PieceColor color, PieceType type);
+
 class Piece {
 private:
 	PieceColor color;
@@ -39,7 +41,6 @@ private:
 	std::vector<Move> legalMoves;
 	bool moved = false;
 
-	std::string makeFilePath();
 public:
 	Piece(PieceColor color, PieceType type, sf::Vector2f position);
 

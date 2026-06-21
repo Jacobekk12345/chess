@@ -15,6 +15,14 @@ private:
 
 	std::optional<sf::Vector2f> selectedSquare;
 
+	Piece* pawnAtBackrank();
+	void drawPromotionView();
+
+	bool promoting = false;
+	std::array<PieceType, 4> availablePromotions = { PieceType::KNIGHT, PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN };
+	std::array<sf::Vector2f, 4> promotionsPositions;
+	const float promotionSelectorsScale = 1.5;
+
 public:
 
 	sf::RenderWindow window;
