@@ -133,6 +133,10 @@ void GameLoop::drawPromotionView() {
 
 void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
     if (mouse->button == sf::Mouse::Button::Left) {
+
+        if (checkmate)
+            return;
+
         sf::Vector2f mouseWorldPos = sf::Vector2f(mouse->position / 100);
 
         if (promoting) {
@@ -171,6 +175,11 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
                 turn = (turn == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
 
                 board->calculateLegalMoves();
+
+                if (board->isCheckmated(turn)) {
+                    std::cout << "checkmate\n";
+                    checkmate = true;
+                }
             }
         }
 

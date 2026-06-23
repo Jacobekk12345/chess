@@ -4,7 +4,7 @@
 #include <SFML/Graphics.hpp>
 
 enum class MoveType {
-	Normal, EnPassant, ShortCastle, LongCastle, PawnPromotion
+	Normal, EnPassant, ShortCastle, LongCastle
 };
 
 struct Move {

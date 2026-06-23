@@ -32,8 +32,7 @@ void Board::movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType
 	if (piece.getType() == PieceType::PAWN) {
 		if (piece.getPos().x != moveTo.x && !getPiece(moveTo))
 			type = MoveType::EnPassant; // moving diagonally but no piece there = en passant
-		else if (moveTo.y == 0 || moveTo.y == 7)
-			type = MoveType::PawnPromotion; // moving to the last rank = promotion, since black pawns cant go to rank 0 and white cant go to rank 7 no safety checks needed
+
 	}
 	else if (piece.getType() == PieceType::KING) {
 		if (std::abs(moveTo.x - piece.getPos().x) == 2)
@@ -51,9 +50,14 @@ void Board::movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType
 		it = std::find_if(pieces.begin(), pieces.end(), [&](const Piece& p) { return p.getPos() == sf::Vector2f{moveTo.x, moveTo.y + captureDir }&& p != piece; });
 		break;
 	}
-	case MoveType::PawnPromotion: {
-		
-
+	case MoveType::ShortCastle: {
+		auto kingSideRook = getPiece({ 7, piece.getPos().y });
+		kingSideRook->setPos({ moveTo.x - 1, moveTo.y });
+		break;
+	}
+	case MoveType::LongCastle: {
+		auto kingSideRook = getPiece({ 0, piece.getPos().y });
+		kingSideRook->setPos({ moveTo.x + 1, moveTo.y });
 		break;
 	}
 	}
@@ -120,10 +124,8 @@ std::vector<Piece*> Board::getPieces() {
 	return piecesCopy;
 }
 
-// TODO: calculate legal moves
-// TODO: function to check if kings in check
-// TODO: function to check if king would be in check after a move
-void Board::calculateLegalMoves(bool checkLegality) {
+
+void Board::calculateLegalMoves() {
 	auto pinnedPieces = getPinnedPieces();
 	for (auto piece : getPieces()) {
 		std::vector<Move> moves;
@@ -136,28 +138,26 @@ void Board::calculateLegalMoves(bool checkLegality) {
 		case PieceType::KING: moves = getKingMoves(*piece); break;
 		}
 
-		if (checkLegality) {
-			if (piece->getType() == PieceType::KING) {
+		if (piece->getType() == PieceType::KING) {
+			moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
+				return wouldBeInCheck(*piece, move.to);
+				}), moves.end());
+		}
+		else {
+			if (isInCheck(piece->getColor())) {
 				moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
 					return wouldBeInCheck(*piece, move.to);
 					}), moves.end());
 			}
-			else {
-				if (isInCheck(piece->getColor())) {
-					moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
-						return wouldBeInCheck(*piece, move.to);
-						}), moves.end());
-				}
-				if (pinnedPieces.count(piece)) {
-					sf::Vector2f pinRay = pinnedPieces[piece];
-					moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
-						sf::Vector2f dir = move.to - move.from;
-						return !(dir.x * pinRay.y == dir.y * pinRay.x);
-						}), moves.end());
-				}
+			if (pinnedPieces.count(piece)) {
+				sf::Vector2f pinRay = pinnedPieces[piece];
+				moves.erase(std::remove_if(moves.begin(), moves.end(), [&](Move move) {
+					sf::Vector2f dir = move.to - move.from;
+					return !(dir.x * pinRay.y == dir.y * pinRay.x);
+					}), moves.end());
 			}
 		}
-
+		
 		piece->setLegalMoves(moves);
 	}
 }
@@ -168,8 +168,7 @@ std::vector<Move> Board::getPawnMoves(Piece& pawn) {
 	int dir = pawn.getColor() == PieceColor::WHITE ? -1 : 1;
 
 	if (!getPiece({ x, y + dir })) {
-		MoveType type = (y + dir == 0 || y + dir == 7) ? MoveType::PawnPromotion : MoveType::Normal;
-		moves.push_back({ pawn.getPos(), { x, y + dir}, type});
+		moves.push_back({ pawn.getPos(), { x, y + dir}});
 		if (!pawn.hasMoved() && !getPiece({ x, y + dir * 2 }))
 			moves.push_back({ pawn.getPos(), { x, y + dir * 2 } });
 	}
@@ -270,21 +269,46 @@ std::vector<Move> Board::getQueenMoves(Piece& queen) {
 	return moves;
 }
 
-std::vector<Move> Board::getKingMoves(Piece& king) {
-	// TODO: castling
+std::vector<Move> Board::getKingMoves(Piece& king, bool checkCastling) {
 	std::vector<Move> moves;
+
+	auto[x, y] = king.getPos();
+
+	if (checkCastling && !isInCheck(king.getColor()) && !king.hasMoved()) {
+		// kingside
+		if (!getPiece({ 6, y }) && !getPiece({ 5, y }))
+			if (auto kingSideRook = getPiece({ 7, y }))
+				if (!kingSideRook->hasMoved()) {
+					sf::Vector2f passingSquare = { x + 1, y },
+								 landingSquare = { x + 2, y };
+					if (!wouldBeInCheck(king, passingSquare) && !wouldBeInCheck(king, landingSquare))
+						moves.push_back({ king.getPos(), landingSquare, MoveType::ShortCastle });
+			
+				}
+		// queenside
+		if (!getPiece({ 3, y }) && !getPiece({ 2, y }) && !getPiece({ 1, y }))
+			if (auto queenSideRook = getPiece({ 0, y }))
+				if (!queenSideRook->hasMoved()) {
+					sf::Vector2f passingSquare = { x - 1, y },
+								 landingSquare = { x - 2, y };
+					if (!wouldBeInCheck(king, passingSquare) && !wouldBeInCheck(king, landingSquare))
+						moves.push_back({ king.getPos(), landingSquare, MoveType::LongCastle });
+				}
+			
+		
+	}
 
 	for (int dx : {-1, 0, 1}) {
 		for (int dy : {-1, 0, 1}) {
 			if (dx == 0 && dy == 0)
 				continue;
-			sf::Vector2f pos = { king.getPos().x + dx, king.getPos().y + dy };
+			sf::Vector2f pos = { x + dx, y + dy };
 			if (pos.x < 0 || pos.x > 7 || pos.y < 0 || pos.y > 7)
 				continue;
 			if (auto piece = getPiece(pos))
 				if (piece->getColor() == king.getColor())
 					continue;
-			moves.push_back({ king.getPos(), pos });
+			moves.push_back({ {x, y}, pos});
 		}
 	}
 	return moves;
@@ -302,7 +326,7 @@ bool Board::isInCheck(PieceColor color) {
         case PieceType::BISHOP: moves = getBishopMoves(*piece); break;
         case PieceType::ROOK:   moves = getRookMoves(*piece);   break;
         case PieceType::QUEEN:  moves = getQueenMoves(*piece);  break;
-        case PieceType::KING:   moves = getKingMoves(*piece);   break;
+        case PieceType::KING:   moves = getKingMoves(*piece, false);   break;
         }
 
         for (auto& move : moves)
@@ -358,7 +382,14 @@ bool Board::wouldBeInCheck(Piece piece, sf::Vector2f moveTo) {
 	Piece* pieceInCopy = boardCopy.getPiece(piece.getPos());
 
 	boardCopy.movePiece(*pieceInCopy, moveTo);
-	boardCopy.calculateLegalMoves(false);
 
 	return boardCopy.isInCheck(piece.getColor());
+}
+
+bool Board::isCheckmated(PieceColor color) {
+	for (auto piece : getPieces(color)) {
+		if (!piece->getLegalMoves().empty())
+			return false;
+	}
+	return true;
 }

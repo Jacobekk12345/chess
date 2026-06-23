@@ -16,7 +16,7 @@ private:
 	std::vector<Move> getBishopMoves(Piece& bishop);
 	std::vector<Move> getRookMoves(Piece& rook);
 	std::vector<Move> getQueenMoves(Piece& queen);
-	std::vector<Move> getKingMoves(Piece& king);
+	std::vector<Move> getKingMoves(Piece& king, bool checkCastling = true);
 
 	bool wouldBeInCheck(Piece piece, sf::Vector2f moveTo);
 public:
@@ -37,9 +37,11 @@ public:
 
 	std::map<Piece*, sf::Vector2f> getPinnedPieces();
 
-	void calculateLegalMoves(bool checkLegality = true);
+	void calculateLegalMoves();
 
 	bool isInCheck(PieceColor color);
 
 	void promotePawn(PieceType type);
+
+	bool isCheckmated(PieceColor color);
 };

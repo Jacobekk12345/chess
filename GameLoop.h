@@ -18,6 +18,8 @@ private:
 	Piece* pawnAtBackrank();
 	void drawPromotionView();
 
+	bool checkmate = false;
+
 	bool promoting = false;
 	std::array<PieceType, 4> availablePromotions = { PieceType::KNIGHT, PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN };
 	std::array<sf::Vector2f, 4> promotionsPositions;
