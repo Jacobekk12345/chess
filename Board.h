@@ -10,6 +10,7 @@ class Board {
 private:
 	std::vector<Piece> pieces;
 	std::optional<Move> lastMove;
+	PieceColor sideToMove = PieceColor::WHITE;
 
 	std::vector<Move> getPawnMoves(Piece& pawn);
 	std::vector<Move> getKnightMoves(Piece& knight);
@@ -19,8 +20,13 @@ private:
 	std::vector<Move> getKingMoves(Piece& king, bool checkCastling = true);
 
 	bool wouldBeInCheck(Piece piece, sf::Vector2f moveTo);
+
+	int halfMoveClock = 0;
 public:
 	Board();
+
+	PieceColor getSideToMove() const;
+	void switchSideToMove();
 
 	void renderPieces(sf::RenderWindow& window) const;
 	void createStartingPos();
@@ -34,6 +40,7 @@ public:
 	std::vector<Piece*> getPieces(PieceColor color);
 	std::vector<Piece*> getPieces(PieceType type);
 	std::vector<Piece*> getPieces();
+	Piece* getKing(PieceColor color);
 
 	std::map<Piece*, sf::Vector2f> getPinnedPieces();
 
@@ -44,4 +51,9 @@ public:
 	void promotePawn(PieceType type);
 
 	bool isCheckmated(PieceColor color);
+
+	int getHalfMoveClock() const;
+
+	std::string stringify();
+	std::unordered_map<std::string, int> positionHistory;
 };

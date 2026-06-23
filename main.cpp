@@ -1,6 +1,5 @@
 #include "GameLoop.h"
 
-// add a promotion screen
 
 int main() {
     GameLoop gl;

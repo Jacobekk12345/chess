@@ -11,14 +11,12 @@ private:
 
 	Board* board;
 
-	PieceColor turn;
-
 	std::optional<sf::Vector2f> selectedSquare;
 
 	Piece* pawnAtBackrank();
 	void drawPromotionView();
 
-	bool checkmate = false;
+	bool finish = false;
 
 	bool promoting = false;
 	std::array<PieceType, 4> availablePromotions = { PieceType::KNIGHT, PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN };

@@ -62,8 +62,16 @@ void Board::movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType
 	}
 	}
 
-	if (it != pieces.end())
+	if (piece.getType() != PieceType::PAWN)
+		halfMoveClock++;
+	else
+		halfMoveClock = 0;
+
+	if (it != pieces.end()) {
 		pieces.erase(it);
+		halfMoveClock = 0;
+	}
+
 }
 
 void Board::promotePawn(PieceType type) {
@@ -198,7 +206,7 @@ std::vector<Move> Board::getKnightMoves(Piece& knight) {
 	for (int d1 : {-1, 1}) {
 		for (int d2 : {-2, 2}) {
 			for (sf::Vector2f pos : std::vector<sf::Vector2f>{{x + d1, y + d2}, {x + d2, y + d1}})
-				if (pos.x >= 0 || pos.x <= 7 || pos.y >= 0 || pos.y <= 7)
+				if (pos.x >= 0 && pos.x <= 7 && pos.y >= 0 && pos.y <= 7)
 					if (!getPiece(pos) || getPiece(pos)->getColor() != knight.getColor())
 						moves.push_back({knight.getPos(), pos});
 		}
@@ -315,7 +323,7 @@ std::vector<Move> Board::getKingMoves(Piece& king, bool checkCastling) {
 }
 
 bool Board::isInCheck(PieceColor color) {
-    Piece* king = this->getPieces(color, PieceType::KING).at(0);
+    Piece* king = this->getKing(color);
     PieceColor opponent = (color == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
 
     for (auto piece : this->getPieces(opponent)) {
@@ -339,7 +347,7 @@ std::map<Piece*, sf::Vector2f> Board::getPinnedPieces() {
 	std::map<Piece*, sf::Vector2f> pinnedPieces;
 
 	for (PieceColor color : {PieceColor::WHITE, PieceColor::BLACK}) {
-		Piece* king = getPieces(color, PieceType::KING).at(0);
+		Piece* king = getKing(color);
 
 		for (int dx : {-1, 0, 1}) {
 			for (int dy : {-1, 0, 1}) {
@@ -392,4 +400,76 @@ bool Board::isCheckmated(PieceColor color) {
 			return false;
 	}
 	return true;
+}
+
+int Board::getHalfMoveClock() const {
+	return halfMoveClock;
+}
+
+PieceColor Board::getSideToMove() const {
+	return sideToMove;
+}
+void Board::switchSideToMove() {
+	sideToMove = (sideToMove == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+}
+
+Piece* Board::getKing(PieceColor color) {
+	for (auto& piece : pieces) {
+		if (piece.getType() == PieceType::KING && piece.getColor() == color)
+			return &piece;
+	}
+	return nullptr;
+}
+
+std::string Board::stringify() {
+
+	std::cout << "stringify called\n";
+	std::string position = "";
+
+	for (auto piece : getPieces()) {
+		auto [x, y] = piece->getPos();
+		position += std::to_string(static_cast<int>(piece->getColor()));
+		position += std::to_string(static_cast<int>(piece->getType()));
+		position += std::to_string(static_cast<int>(x));
+		position += std::to_string(static_cast<int>(y));
+		position += ',';
+	}
+	position += "|";
+	position += std::to_string(static_cast<int>(sideToMove));
+	position += "|";
+
+	if (auto king = getKing(PieceColor::WHITE)) {
+		if (!king->hasMoved()) {
+			if (auto kingSideRook = getPiece({7, 7}))
+				if (!kingSideRook->hasMoved() && kingSideRook->getColor() == PieceColor::WHITE && kingSideRook->getType() == PieceType::ROOK)
+					position += "K";
+			if (auto queenSideRook = getPiece({ 0, 7 }))
+				if (!queenSideRook->hasMoved() && queenSideRook->getColor() == PieceColor::WHITE && queenSideRook->getType() == PieceType::ROOK)
+					position += "Q";
+		}	
+	}
+	if (auto king = getKing(PieceColor::BLACK)) {
+		if (!king->hasMoved()) {
+			if (auto kingSideRook = getPiece({ 7, 0 }))
+				if (!kingSideRook->hasMoved() && kingSideRook->getColor() == PieceColor::BLACK && kingSideRook->getType() == PieceType::ROOK)
+					position += "k";
+			if (auto queenSideRook = getPiece({ 0, 0 }))
+				if (!queenSideRook->hasMoved() && queenSideRook->getColor() == PieceColor::BLACK && queenSideRook->getType() == PieceType::ROOK)
+					position += "q";
+		}
+	}
+
+	position += "|";
+
+	if (lastMove) {
+		auto piece = getPiece(lastMove->to);
+		if (piece->getType() == PieceType::PAWN && abs(lastMove->to.y - lastMove->from.y) == 2)
+			position += std::to_string(static_cast<int>(piece->getPos().x));
+		else
+			position += '-';
+	}
+	else
+		position += '-';
+
+	return position;
 }

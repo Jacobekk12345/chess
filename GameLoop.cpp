@@ -5,11 +5,12 @@ GameLoop::GameLoop() : darkSquareColor(sf::Color(118, 150, 86)),
                        selectedSquareColor(sf::Color(186, 202, 68)),
                        moveIndicatorColor(sf::Color(100, 100, 100, 200)),
                        checkedSquareColor(sf::Color(200, 0, 0)),
-                       turn(PieceColor::WHITE),
                        selectedSquare(std::nullopt) {
 	window = sf::RenderWindow(sf::VideoMode({800, 800}), "Chess", sf::Style::Close);
 
     board = new Board();
+
+    board->positionHistory[board->stringify()]++;
 
     float promotionWidth = availablePromotions.size() * promotionSelectorsScale * 100;
     for (int i = 0; i < promotionsPositions.size(); i++) {
@@ -54,7 +55,7 @@ void GameLoop::drawBoard() {
 
     for (auto color : { PieceColor::WHITE, PieceColor::BLACK }) {
         if (board->isInCheck(color)) {
-            auto king = board->getPieces(color, PieceType::KING).at(0);
+            auto king = board->getKing(color);
             square.setPosition(king->getPos() * 100.f);
             square.setFillColor(checkedSquareColor);
             window.draw(square);
@@ -80,7 +81,7 @@ void GameLoop::drawMoveIndicators() {
 
         Piece* selectedPiece = board->getPiece(*selectedSquare);
 
-        for (auto move : selectedPiece->getLegalMoves()) {
+        for (const auto& move : selectedPiece->getLegalMoves()) {
             if (board->getPiece(move.to) || move.type == MoveType::EnPassant) {
                 captureMoveIndicator.setPosition(move.to * 100.f);
                 window.draw(captureMoveIndicator);
@@ -123,7 +124,7 @@ void GameLoop::drawPromotionView() {
     window.draw(bg);
 
     for (int i = 0; i < availablePromotions.size(); i++) {
-        texture.loadFromFile(makeFilePath(turn, availablePromotions[i]));
+        texture.loadFromFile(makeFilePath(board->getSideToMove(), availablePromotions[i]));
         sf::Sprite sprite(texture);
         sprite.setScale({promotionSelectorsScale, promotionSelectorsScale });
         sprite.setPosition(promotionsPositions[i]);
@@ -134,7 +135,7 @@ void GameLoop::drawPromotionView() {
 void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
     if (mouse->button == sf::Mouse::Button::Left) {
 
-        if (checkmate)
+        if (finish)
             return;
 
         sf::Vector2f mouseWorldPos = sf::Vector2f(mouse->position / 100);
@@ -149,7 +150,7 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
                 if ((mX > pX && mX < (pX + promotionSelectorsScale * 100)) && (mY > pY && mY < (pY + promotionSelectorsScale * 100))) {
                     promoting = false;
                     pawnAtBackrank()->promote(availablePromotions[i]);
-                    turn = (turn == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+                    board->switchSideToMove();
                     board->calculateLegalMoves();
                 }
             }
@@ -158,7 +159,7 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
 
         Piece* clickedOnSquare = board->getPiece(mouseWorldPos);
 
-        if (clickedOnSquare && clickedOnSquare->getColor() == turn)
+        if (clickedOnSquare && clickedOnSquare->getColor() == board->getSideToMove())
             selectPiece(*clickedOnSquare);
 
         else if (selectedSquare) {
@@ -172,13 +173,25 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
                     promoting = true;
                     return;
                 }
-                turn = (turn == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+                board->switchSideToMove();
 
                 board->calculateLegalMoves();
 
-                if (board->isCheckmated(turn)) {
-                    std::cout << "checkmate\n";
-                    checkmate = true;
+                // TODO: draw by insufficient material
+                if (board->isCheckmated(board->getSideToMove())) {
+                    if (board->isInCheck(board->getSideToMove()))
+                        std::cout << (board->getSideToMove() == PieceColor::WHITE ? "black" : "white") << " won by checkmate\n";
+                    else
+                        std::cout << "draw by stalemate\n";
+                    finish = true;
+                }
+                else if (board->getHalfMoveClock() >= 100) {
+                    std::cout << "draw by the fifty move rule\n";
+                    finish = true;
+                }
+                else if (++board->positionHistory[board->stringify()] >= 3) {
+                    std::cout << "draw by threefold repetition\n";
+                    finish = true;
                 }
             }
         }
