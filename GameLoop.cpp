@@ -12,6 +12,7 @@ GameLoop::GameLoop() : darkSquareColor(sf::Color(118, 150, 86)),
 
     board->positionHistory[board->stringify()]++;
 
+    // this piece of code allows for chganging the scale of the pieces that show up when the user wants to promote without needing to rewrite its positions, spacing etc. and no hardcoding
     float promotionWidth = availablePromotions.size() * promotionSelectorsScale * 100;
     for (int i = 0; i < promotionsPositions.size(); i++) {
         promotionsPositions[i] = { 
@@ -177,7 +178,6 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
 
                 board->calculateLegalMoves();
 
-                // TODO: draw by insufficient material
                 if (board->isCheckmated(board->getSideToMove())) {
                     if (board->isInCheck(board->getSideToMove()))
                         std::cout << (board->getSideToMove() == PieceColor::WHITE ? "black" : "white") << " won by checkmate\n";
@@ -193,6 +193,11 @@ void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
                     std::cout << "draw by threefold repetition\n";
                     finish = true;
                 }
+                else if (board->insufficientMaterial()) {
+                    std::cout << "draw by insufficient material\n";
+                    finish = true;
+                }
+                
             }
         }
 

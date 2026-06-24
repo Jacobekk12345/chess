@@ -422,8 +422,6 @@ Piece* Board::getKing(PieceColor color) {
 }
 
 std::string Board::stringify() {
-
-	std::cout << "stringify called\n";
 	std::string position = "";
 
 	for (auto piece : getPieces()) {
@@ -472,4 +470,51 @@ std::string Board::stringify() {
 		position += '-';
 
 	return position;
+}
+
+bool Board::insufficientMaterial() const {
+	std::vector<Piece> white, black;
+
+	for (const auto& piece : pieces) {
+		if (piece.getColor() == PieceColor::WHITE) white.push_back(piece);
+		else black.push_back(piece);
+	}
+
+	if (white.size() == 1 && black.size() == 1)
+		return true;
+
+	Piece *whiteMinor = kingAndMinor(white),
+		  *blackMinor = kingAndMinor(black);
+
+	if (white.size() == 1 && blackMinor)
+		return true;
+	if (black.size() == 1 && whiteMinor)
+		return true;
+
+	if (blackMinor && whiteMinor) {
+		if (blackMinor->getType() == PieceType::BISHOP && whiteMinor->getType() == PieceType::BISHOP) {
+			if (isLightSquare(blackMinor) && isLightSquare(whiteMinor))
+				return true;
+		}
+	}
+	return false;
+}
+
+Piece* Board::kingAndMinor(std::vector<Piece> side) const {
+	// returns the minor piece that the king is left with
+	if (side.size() != 2)
+		return nullptr;
+
+	for (auto& piece : side) {
+		if (piece.getType() == PieceType::BISHOP || piece.getType() == PieceType::KNIGHT)
+			return &piece;
+	}
+	return nullptr;
+}
+
+bool Board::isLightSquare(Piece* bishop) const {
+	int x = static_cast<int>(bishop->getPos().x);
+	int y = static_cast<int>(bishop->getPos().y);
+
+	return ((x % 2 == 0) ^ (y % 2 == 0));
 }

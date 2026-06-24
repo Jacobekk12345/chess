@@ -1,7 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <iostream>	// only for debug
 #include "Board.h"
 
 class GameLoop {
@@ -13,15 +12,15 @@ private:
 
 	std::optional<sf::Vector2f> selectedSquare;
 
-	Piece* pawnAtBackrank();
-	void drawPromotionView();
-
 	bool finish = false;
 
 	bool promoting = false;
 	std::array<PieceType, 4> availablePromotions = { PieceType::KNIGHT, PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN };
 	std::array<sf::Vector2f, 4> promotionsPositions;
 	const float promotionSelectorsScale = 1.5;
+
+	Piece* pawnAtBackrank();
+	void drawPromotionView();
 
 public:
 

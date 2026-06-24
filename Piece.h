@@ -1,6 +1,6 @@
 #pragma once
 
-#include <iostream>
+#include <iostream>	// onyl for debug
 #include <SFML/Graphics.hpp>
 
 enum class MoveType {
@@ -37,9 +37,10 @@ private:
 	PieceColor color;
 	PieceType type;
 	sf::Vector2f position;
-	sf::Texture texture;
 	std::vector<Move> legalMoves;
 	bool moved = false;
+
+	sf::Texture texture;
 
 public:
 	Piece(PieceColor color, PieceType type, sf::Vector2f position);
@@ -53,14 +54,15 @@ public:
 	PieceColor getColor() const;
 	PieceType getType() const;
 	
-	void draw(sf::RenderWindow& window) const;
+	bool hasMoved() const;
+	void markAsMoved();
+
+	void promote(const PieceType& type);
 
 	std::vector<Move> getLegalMoves() const;
 	void setLegalMoves(const std::vector<Move>& moves);
 	bool canMoveTo(sf::Vector2f move) const;
 
-	bool hasMoved() const;
-	void markAsMoved();
+	void draw(sf::RenderWindow& window) const;
 
-	void promote(const PieceType& type);
 };
