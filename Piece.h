@@ -1,6 +1,7 @@
 #pragma once
 
-#include <iostream>	// onyl for debug
+#include <iostream>	// only for debug
+#include "Utils.h"
 #include <SFML/Graphics.hpp>
 
 enum class MoveType {
@@ -20,6 +21,14 @@ enum class PieceColor {
 	WHITE,
 	BLACK
 };
+inline PieceColor operator!(PieceColor color) {
+	return (color == PieceColor::WHITE ? PieceColor::BLACK : PieceColor::WHITE);
+}
+inline std::ostream& operator<<(std::ostream& os, const PieceColor& color)
+{
+	os << (color == PieceColor::WHITE ? "white" : "black");
+	return os;
+}
 
 enum class PieceType {
 	PAWN,
@@ -27,10 +36,26 @@ enum class PieceType {
 	BISHOP,
 	ROOK,
 	QUEEN,
-	KING
+	KING,
+	EMPTY
 };
+inline std::ostream& operator<<(std::ostream& os, const PieceType& type)
+{
+	switch (type) {
+	case PieceType::PAWN: os << "pawn"; break;
+	case PieceType::KNIGHT: os << "knight"; break;
+	case PieceType::BISHOP: os << "bishop"; break;
+	case PieceType::ROOK: os << "rook"; break;
+	case PieceType::QUEEN: os << "queen"; break;
+	case PieceType::KING: os << "king"; break;
+	case PieceType::EMPTY: os << "empty"; break;
+	}
+	return os;
+}
 
 std::string makeFilePath(PieceColor color, PieceType type);
+
+
 
 class Piece {
 private:
@@ -66,3 +91,9 @@ public:
 	void draw(sf::RenderWindow& window) const;
 
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Piece& p)
+{
+	os << "Color: " << p.getColor() << ", Type: " << p.getType() << ", Position: (" << p.getPos().x << ", " << p.getPos().y << ")\n";
+	return os;
+}

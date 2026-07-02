@@ -3,6 +3,16 @@
 Board::Board() : lastMove(std::nullopt) {
 	createStartingPos();
 	calculateLegalMoves();
+
+	std::string date = getCurrentDate();
+
+	pgn =
+		"[Event \"Friendly Match\"]\n"
+		"[Site \"SFML chess\"]\n"
+		"[Date \"" + date + "\"]\n"
+		"[Round \"-\"]\n"
+		"[White \"The Diddler\"]\n"
+		"[Black \"Mr. Poopybutthole\"]\n";
 }
 
 void Board::renderPieces(sf::RenderWindow& window) const {
@@ -25,8 +35,19 @@ void Board::createStartingPos() {
 	}
 }
 
-void Board::movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType) {
-	auto it = std::find_if(pieces.begin(), pieces.end(), [&](const Piece& p) { return p.getPos() == moveTo && p != piece; });
+void Board::movePiece(Piece& piece, sf::Vector2f moveTo, bool actuallyMoving) {
+
+	std::optional<Piece> capturedPiece;
+
+	if (actuallyMoving)
+		checkDisambiguity(piece, { piece.getPos(), moveTo });
+
+	auto it = std::find_if(
+		pieces.begin(),
+		pieces.end(),
+		[&](const Piece& p) { return p.getPos() == moveTo && p != piece; }
+	);
+
 	MoveType type = MoveType::Normal;
 
 	if (piece.getType() == PieceType::PAWN) {
@@ -68,10 +89,28 @@ void Board::movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType
 		halfMoveClock = 0;
 
 	if (it != pieces.end()) {
+		capturedPiece = *it;
 		pieces.erase(it);
 		halfMoveClock = 0;
 	}
 
+	if (actuallyMoving) {
+		Piece movingPiece = piece;
+
+		lastMoveInfo = MoveInfo(*lastMove, movingPiece);
+		
+		lastMoveInfo->capturedPiece = capturedPiece;
+
+		PieceColor enemy = !(movingPiece.getColor());
+	}
+}
+
+void Board::finishPGNMove(PieceColor enemy, PieceType promotionType) {
+	lastMoveInfo->isCheck = isInCheck(enemy);
+	lastMoveInfo->isMate = isCheckmated(enemy);
+	lastMoveInfo->promotionTo = promotionType;
+
+	moveToPGN(*lastMoveInfo);
 }
 
 void Board::promotePawn(PieceType type) {
@@ -389,7 +428,7 @@ bool Board::wouldBeInCheck(Piece piece, sf::Vector2f moveTo) {
 	Board boardCopy = *this;
 	Piece* pieceInCopy = boardCopy.getPiece(piece.getPos());
 
-	boardCopy.movePiece(*pieceInCopy, moveTo);
+	boardCopy.movePiece(*pieceInCopy, moveTo, false);
 
 	return boardCopy.isInCheck(piece.getColor());
 }
@@ -410,7 +449,7 @@ PieceColor Board::getSideToMove() const {
 	return sideToMove;
 }
 void Board::switchSideToMove() {
-	sideToMove = (sideToMove == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+	sideToMove = !sideToMove;
 }
 
 Piece* Board::getKing(PieceColor color) {
@@ -517,4 +556,117 @@ bool Board::isLightSquare(Piece* bishop) const {
 	int y = static_cast<int>(bishop->getPos().y);
 
 	return ((x % 2 == 0) ^ (y % 2 == 0));
+}
+
+std::string Board::getDisambiguity() const {
+	return disambiguity;
+}
+void Board::checkDisambiguity(Piece movedPiece, Move move) {
+
+	auto [x, y] = move.from;
+	char fromFile = 'a' + x;
+	char fromRank = '8' - y;
+
+	bool sharesFile = false;
+	bool sharesRank = false;
+	bool needsDisambiguation = false;
+
+	for (auto p : getPieces(movedPiece.getColor(), movedPiece.getType())) {
+		if (*p == movedPiece)
+			continue;
+
+		for (auto m : p->getLegalMoves()) {
+			if (m.to == move.to) {
+				needsDisambiguation = true;
+				if (p->getPos().x == x)
+					sharesFile = true;
+				if (p->getPos().y == y)
+					sharesRank = true;
+			}
+		}
+	}
+	if (needsDisambiguation) {
+		if (sharesFile && sharesRank)
+			disambiguity = fromFile + fromRank;
+		else if (sharesFile)
+			disambiguity = fromRank;
+		else
+			disambiguity = fromFile;
+	}
+	else
+		disambiguity = "";
+}
+
+void Board::moveToPGN(MoveInfo moveInfo) {
+	std::string move = "", pieceType, from = getDisambiguity(), takes = "", to, promotion = "", checkOrMate;
+
+	auto [fromX, fromY] = moveInfo.move.from;
+	auto [toX, toY] = moveInfo.move.to;
+
+	char fromFile = 'a' + fromX;
+	char fromRank = '8' - fromY;
+
+	char toFile = 'a' + toX;
+	char toRank = '8' - toY;
+
+	if (moveInfo.piece.getColor() == PieceColor::WHITE)
+		move = std::to_string(moveCount) + ". ";
+
+	if (moveInfo.move.type == MoveType::ShortCastle) {
+		moveHistory += "O-O ";
+		return;
+	}
+	else if (moveInfo.move.type == MoveType::LongCastle) {
+		moveHistory += "O-O-O ";
+		return;
+	}
+
+	switch (moveInfo.piece.getType()) {
+	case PieceType::KNIGHT: pieceType = "N"; break;
+	case PieceType::BISHOP: pieceType = "B"; break;
+	case PieceType::ROOK:   pieceType = "R"; break;
+	case PieceType::QUEEN:  pieceType = "Q"; break;
+	case PieceType::KING:	pieceType = "K"; break;
+	default:				pieceType = ""; // if its a pawn and its a capture write the file the pawn took from
+	}
+
+	if (moveInfo.piece.getType() == PieceType::PAWN)
+		if (moveInfo.capturedPiece)
+			from = fromFile;
+
+	if (moveInfo.capturedPiece)
+		takes = "x";
+
+ 	to = std::string(1, toFile) + std::string(1, toRank);
+
+	if (moveInfo.promotionTo != PieceType::EMPTY)
+		switch (moveInfo.promotionTo) {
+		case PieceType::KNIGHT: promotion = "=N"; break;
+		case PieceType::BISHOP: promotion = "=B"; break;
+		case PieceType::ROOK:	promotion = "=R"; break;
+		case PieceType::QUEEN:	promotion = "=Q"; break;
+		}
+
+	if (moveInfo.isCheck)
+		checkOrMate = "+";
+	if (moveInfo.isMate)
+		checkOrMate = "#";
+
+	moveHistory += move + pieceType + from + takes + to + promotion + checkOrMate + " ";
+}
+
+void Board::increaseMoveCount() {
+	moveCount++;
+}
+
+std::string Board::getMoveHistory() const {
+	return moveHistory;
+}
+
+std::string Board::getPGN(std::string result) {
+	pgn += "[Result \"" + result + "\"]\n\n";
+	pgn += moveHistory;
+	pgn += result;
+
+	return pgn;
 }

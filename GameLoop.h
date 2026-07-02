@@ -34,6 +34,11 @@ public:
 
 	void eventLoop();
 	void handleMouse(const sf::Event::MouseButtonPressed* mouse);
+	void handleBoardClick(const sf::Event::MouseButtonPressed* mouse);
+	void handlePromotionClick(const sf::Event::MouseButtonPressed* mouse);
+
+	void finishTurn(PieceType promotionType = PieceType::EMPTY);
+	void checkGameEnd();
 
 	void selectPiece(Piece& piece);
 	void deselectPieces();

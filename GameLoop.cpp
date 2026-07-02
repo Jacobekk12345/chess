@@ -133,77 +133,101 @@ void GameLoop::drawPromotionView() {
     }
 }
 
-void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
-    if (mouse->button == sf::Mouse::Button::Left) {
+void GameLoop::handlePromotionClick(const sf::Event::MouseButtonPressed* mouse) {
+    for (int i = 0; i < promotionsPositions.size(); i++) {
+        float mX = mouse->position.x,
+            mY = mouse->position.y,
+            pX = promotionsPositions[i].x,
+            pY = promotionsPositions[i].y;
 
-        if (finish)
-            return;
+        if ((mX > pX && mX < (pX + promotionSelectorsScale * 100)) && (mY > pY && mY < (pY + promotionSelectorsScale * 100))) {
+            promoting = false;
 
-        sf::Vector2f mouseWorldPos = sf::Vector2f(mouse->position / 100);
-
-        if (promoting) {
-            for (int i = 0; i < promotionsPositions.size(); i++) {
-                float mX = mouse->position.x,
-                      mY = mouse->position.y,
-                      pX = promotionsPositions[i].x,
-                      pY = promotionsPositions[i].y;
-
-                if ((mX > pX && mX < (pX + promotionSelectorsScale * 100)) && (mY > pY && mY < (pY + promotionSelectorsScale * 100))) {
-                    promoting = false;
-                    pawnAtBackrank()->promote(availablePromotions[i]);
-                    board->switchSideToMove();
-                    board->calculateLegalMoves();
-                }
-            }
-            return;
+            pawnAtBackrank()->promote(availablePromotions[i]);
+            finishTurn(availablePromotions[i]);
         }
-
-        Piece* clickedOnSquare = board->getPiece(mouseWorldPos);
-
-        if (clickedOnSquare && clickedOnSquare->getColor() == board->getSideToMove())
-            selectPiece(*clickedOnSquare);
-
-        else if (selectedSquare) {
-            Piece* selectedPiece = board->getPiece(*selectedSquare);
-
-            if (selectedPiece->canMoveTo(mouseWorldPos)) {
-                board->movePiece(*selectedPiece, mouseWorldPos);
-                deselectPieces();
-
-                if (pawnAtBackrank()) {
-                    promoting = true;
-                    return;
-                }
-                board->switchSideToMove();
-
-                board->calculateLegalMoves();
-
-                if (board->isCheckmated(board->getSideToMove())) {
-                    if (board->isInCheck(board->getSideToMove()))
-                        std::cout << (board->getSideToMove() == PieceColor::WHITE ? "black" : "white") << " won by checkmate\n";
-                    else
-                        std::cout << "draw by stalemate\n";
-                    finish = true;
-                }
-                else if (board->getHalfMoveClock() >= 100) {
-                    std::cout << "draw by the fifty move rule\n";
-                    finish = true;
-                }
-                else if (++board->positionHistory[board->stringify()] >= 3) {
-                    std::cout << "draw by threefold repetition\n";
-                    finish = true;
-                }
-                else if (board->insufficientMaterial()) {
-                    std::cout << "draw by insufficient material\n";
-                    finish = true;
-                }
-                
-            }
-        }
-
-        else
-            deselectPieces();
     }
+}
+
+void GameLoop::finishTurn(PieceType promotionType) {
+
+    deselectPieces();
+
+    if (pawnAtBackrank()) {
+        promoting = true;
+        return;
+    }
+
+    if (board->getSideToMove() == PieceColor::BLACK)
+        board->increaseMoveCount();
+
+    board->switchSideToMove();
+    board->calculateLegalMoves();
+
+    board->finishPGNMove(board->getSideToMove(), promotionType);
+
+    checkGameEnd();
+}
+
+void GameLoop::checkGameEnd() {
+    if (board->isCheckmated(board->getSideToMove())) {
+        if (board->isInCheck(board->getSideToMove()))
+            std::cout << '{' << board->getSideToMove() << " won by checkmate}\n" << board->getPGN(board->getSideToMove() == PieceColor::WHITE ? "0-1" : "1-0");
+        else
+            std::cout << "{draw by stalemate}\n" << board->getPGN("1/2-1/2");
+        finish = true;
+    }
+    else if (board->getHalfMoveClock() >= 100) {
+        std::cout << "{draw by the fifty move rule}\n" << board->getPGN("1/2-1/2");
+        finish = true;
+    }
+    else if (++board->positionHistory[board->stringify()] >= 3) {
+        std::cout << "{draw by threefold repetition}\n" << board->getPGN("1/2-1/2");
+        finish = true;
+    }
+    else if (board->insufficientMaterial()) {
+        std::cout << "{draw by insufficient material}\n" << board->getPGN("1/2-1/2");
+        finish = true;
+    }
+}
+
+void GameLoop::handleBoardClick(const sf::Event::MouseButtonPressed* mouse) {
+    sf::Vector2f mouseWorldPos = sf::Vector2f(mouse->position / 100);
+
+    Piece* clickedOnSquare = board->getPiece(mouseWorldPos);
+
+    if (clickedOnSquare && clickedOnSquare->getColor() == board->getSideToMove())
+        selectPiece(*clickedOnSquare);
+
+    else if (selectedSquare) {
+        Piece* selectedPiece = board->getPiece(*selectedSquare);
+
+        if (selectedPiece->canMoveTo(mouseWorldPos)) {
+
+            board->movePiece(*selectedPiece, mouseWorldPos);
+            finishTurn();
+
+        }
+    }
+
+    else
+        deselectPieces();
+}
+
+void GameLoop::handleMouse(const sf::Event::MouseButtonPressed* mouse) {
+
+    if (finish)
+        return;
+
+    if (mouse->button != sf::Mouse::Button::Left)
+        return;
+
+    if (promoting) {
+        handlePromotionClick(mouse);
+        return;
+    }
+
+    handleBoardClick(mouse);
 }
 
 void GameLoop::selectPiece(Piece& piece) {

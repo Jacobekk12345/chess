@@ -5,6 +5,18 @@
 #include <map>
 #include "Piece.h"
 
+struct MoveInfo {
+	Move move;
+	Piece piece;
+	std::optional<Piece> capturedPiece;
+	PieceType promotionTo;
+	bool isCheck, isMate;
+
+	MoveInfo(Move move, Piece piece): move(move), piece(piece) {
+		isCheck = false; isMate = false;
+	}
+};
+
 class Board {
 private:
 	std::vector<Piece> pieces;
@@ -12,6 +24,7 @@ private:
 	PieceColor sideToMove = PieceColor::WHITE;
 
 	int halfMoveClock = 0;
+	int moveCount = 1;
 
 	bool wouldBeInCheck(Piece piece, sf::Vector2f moveTo);
 
@@ -24,6 +37,14 @@ private:
 	std::vector<Move> getRookMoves(Piece& rook);
 	std::vector<Move> getQueenMoves(Piece& queen);
 	std::vector<Move> getKingMoves(Piece& king, bool checkCastling = true);
+
+	std::string disambiguity;
+	std::string getDisambiguity() const;
+	void checkDisambiguity(Piece movedPiece, Move move);
+
+	std::optional<MoveInfo> lastMoveInfo;
+	
+	std::string pgn, moveHistory;
 
 public:
 	std::unordered_map<std::string, int> positionHistory;
@@ -45,7 +66,7 @@ public:
 
 	std::optional<Move> getLastMove() const;
 
-	void movePiece(Piece& piece, sf::Vector2f moveTo, PieceType promotionType = PieceType::QUEEN);
+	void movePiece(Piece& piece, sf::Vector2f moveTo, bool actuallyMoving = true);
 	void calculateLegalMoves();
 	bool isInCheck(PieceColor color);
 	void promotePawn(PieceType type);
@@ -56,4 +77,13 @@ public:
 	int getHalfMoveClock() const;
 	std::string stringify();
 	bool insufficientMaterial() const;
+
+	void moveToPGN(MoveInfo moveInfo);
+
+	void increaseMoveCount();
+
+	std::string getMoveHistory() const;
+
+	void finishPGNMove(PieceColor enemy, PieceType promotionType = PieceType::EMPTY);
+	std::string getPGN(std::string result);
 };

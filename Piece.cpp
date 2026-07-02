@@ -1,14 +1,16 @@
 #include "Piece.h"
 
+
+
 Piece::Piece(PieceColor color, PieceType type, sf::Vector2f position) : color(color), type(type), position(position){
     texture.loadFromFile(makeFilePath(color, type));
     texture.setSmooth(true);
 }
 
 bool Piece::operator==(const Piece& other) const {
-    return color == other.color &&
-        type == other.type &&
-        position == other.position;
+    return  color    == other.color &&
+            type     == other.type &&
+            position == other.position;
 }
 
 bool Piece::operator!=(const Piece& other) const {
@@ -68,5 +70,4 @@ void Piece::markAsMoved() {
 void Piece::promote(const PieceType& type) {
     this->type = type;
     texture.loadFromFile(makeFilePath(color, type));
-
 }
